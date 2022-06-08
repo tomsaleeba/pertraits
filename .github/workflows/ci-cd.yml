@@ -3,7 +3,7 @@ name: 'CI/CD'
 on: push
 
 jobs:
-  lint-and-test:
+  check-build-deploy:
     runs-on: ubuntu-latest
     steps:
 
@@ -38,13 +38,12 @@ jobs:
     # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md#cli-tools
     - name: deploy
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
       run: |
-        aws configure <<-EOF > /dev/null 2>&1
-        ${AWS_ACCESS_KEY_ID:?}
-        ${AWS_SECRET_ACCESS_KEY:?}
-        ${AWS_REGION:?}
-        text
-        EOF
         cd frontend/build/
         branchName=${GITHUB_REF##*/}
         bucket=${AWS_S3_BUCKET:?}
