@@ -13,9 +13,6 @@ const log = {
   error: console.error,
 }
 
-// FIXME add litestream
-// FIXME add CD to deploy to GCP Run with 1 replica
-
 app.get('/', async (req, res) => {
   const rows = await getData()
   return res.send(rows)

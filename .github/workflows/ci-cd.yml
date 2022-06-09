@@ -2,6 +2,10 @@ name: 'CI/CD'
 
 on: push
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   check-build-deploy:
     runs-on: ubuntu-latest
@@ -12,8 +16,18 @@ jobs:
     # ubuntu-latest already comes with node installed
     # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md#package-management
 
-    # FIXME consider caching deps
-    # https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows
+    - name: Cache node modules
+      id: cache-npm
+      uses: actions/cache@v3
+      env:
+        cache-name: cache-node-modules
+      with:
+        path: |
+          ~/.npm
+        key: build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          build-${{ env.cache-name }}-
+          build-
 
     - name: Install dependencies
       run: |
@@ -23,20 +37,43 @@ jobs:
     # - name: lint FIXME add eslint
     #   run: npm run lint
 
-    - name: unit test
+    - name: Unit test
       run: |
         cd ./frontend/
         npm run test
 
-    - name: build
+    # FIXME test and lint backend
+
+    - name: Build frontend
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
       run: |
         cd ./frontend/
         npm run build
 
+    - name: Log in to the Container registry
+      uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+    - name: Build and push backend Docker image
+      uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+      with:
+        context: ./backend/
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
     # ubuntu-latest already comes with aws-cli
     # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md#cli-tools
-    - name: deploy
+    - name: Deploy frontend
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -51,3 +88,29 @@ jobs:
           bucket="dev-${bucket}"
         fi
         aws s3 sync --delete . s3://${bucket}
+
+    # ubuntu-latest already comes with gcloud
+    # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md#cli-tools
+    # - name: Deploy backend
+    #   if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    #   env:
+    #     theImage: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+    #     # FIXME are there multiple tags?
+    #     theTag: ${{ steps.meta.outputs.tags }}
+    #     GCP_SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME }}
+    #     # FIXME get gcp auth
+    #   run: |
+    #     commonParams="--platform managed --region ${GOOGLE_COMPUTE_ZONE:?}"
+    #     gcloud beta run deploy $GCP_SERVICE_NAME \
+    #       --image $theImage \
+    #       --execution-environment gen2 \
+    #       $commonParams \
+    #       --allow-unauthenticated \
+    #       --revision-suffix=${theTag} \
+    #       --max-instances=1
+    #       #--set-env-vars ${ZZ:?}
+    #     gcloud beta run services describe \
+    #       $GCP_SERVICE_NAME \
+    #       $commonParams \
+    #       --format="value(status.address.url)"
+
