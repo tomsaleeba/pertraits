@@ -34,9 +34,9 @@ jobs:
       run: |
         npm install --global pnpm
         cd ./frontend/
-        pnpm --frozen-lockfile
+        pnpm install --frozen-lockfile
         cd ../backend/
-        pnpm --frozen-lockfile
+        pnpm install --frozen-lockfile
 
     # - name: lint FIXME add eslint
     #   run: npm run lint
