@@ -24,15 +24,19 @@ jobs:
       with:
         path: |
           ~/.npm
-        key: build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          ~/.pnpm-store
+        key: build-${{ env.cache-name }}-${{ hashFiles('**/pnpm-lock.yaml') }}
         restore-keys: |
           build-${{ env.cache-name }}-
           build-
 
     - name: Install dependencies
       run: |
+        npm install --global pnpm
         cd ./frontend/
-        npm ci
+        pnpm --frozen-lockfile
+        cd ../backend/
+        pnpm --frozen-lockfile
 
     # - name: lint FIXME add eslint
     #   run: npm run lint
@@ -40,7 +44,7 @@ jobs:
     - name: Unit test
       run: |
         cd ./frontend/
-        npm run test
+        pnpm test
 
     # FIXME test and lint backend
 
@@ -48,7 +52,7 @@ jobs:
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
       run: |
         cd ./frontend/
-        npm run build
+        pnpm build
 
     - name: Log in to the Container registry
       uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
@@ -64,6 +68,7 @@ jobs:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
     - name: Build and push backend Docker image
+      id: buildpush
       uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
       with:
         context: ./backend/
@@ -91,15 +96,16 @@ jobs:
 
     # ubuntu-latest already comes with gcloud
     # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md#cli-tools
-    # - name: Deploy backend
-    #   if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-    #   env:
-    #     theImage: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-    #     # FIXME are there multiple tags?
-    #     theTag: ${{ steps.meta.outputs.tags }}
-    #     GCP_SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME }}
-    #     # FIXME get gcp auth
-    #   run: |
+    - name: Deploy backend
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+      env:
+        theImage: ${{ steps.buildpush.outputs.imageid }}
+        theTag: ${{ steps.meta.outputs.tags }}
+        # FIXME get gcp auth
+        # GCP_SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME }}
+      run: |
+          echo $theImage
+          echo $theTag
     #     commonParams="--platform managed --region ${GOOGLE_COMPUTE_ZONE:?}"
     #     gcloud beta run deploy $GCP_SERVICE_NAME \
     #       --image $theImage \
