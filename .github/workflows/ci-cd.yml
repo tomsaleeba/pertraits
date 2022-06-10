@@ -11,6 +11,9 @@ jobs:
   check:
     # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-dir: ['frontend', 'backend']
     steps:
 
     - uses: actions/checkout@v2
@@ -31,30 +34,61 @@ jobs:
 
     - name: Install dependencies
       run: |
-        npm install --global pnpm
-        cd ./frontend/
-        pnpm install --frozen-lockfile
-        cd ../backend/
+        cd ./${{ matrix.build-dir }}/
         pnpm install --frozen-lockfile
 
-    # - name: lint FIXME add eslint
-    #   run: npm run lint
+    - name: Lint
+      run: |
+        cd ./${{ matrix.build-dir }}/
+        pnpm lint
 
     - name: Unit test
       run: |
-        cd ./frontend/
+        cd ./${{ matrix.build-dir }}/
         pnpm test
 
-    # FIXME test and lint backend
-
   build-deploy:
+    needs: check
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Cache node modules
+      id: cache-npm
+      uses: actions/cache@v3
+      env:
+        cache-name: cache-node-modules
+      with:
+        path: |
+          ~/.npm
+          ~/.pnpm-store
+        key: build-${{ env.cache-name }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          build-${{ env.cache-name }}-
+          build-
+
     - name: Build frontend
       run: |
         cd ./frontend/
         pnpm build
+
+    - name: Build backend
+      env:
+        DOCKER_USERNAME: ${{ github.actor }}
+        DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set -eux
+        echo $DOCKER_PASSWORD | docker login --password-stdin \
+          --username $DOCKER_USERNAME $REGISTRY
+        cd backend/
+        branchName=${GITHUB_REF##*/}
+        /usr/bin/docker buildx build \
+          --tag $IMAGE_TAG_WITH_SHA \
+          --tag $IMAGE_NAME:$branchName \
+          --push \
+          .
 
     - name: Deploy frontend
       # FIXME what about deploying to GH pages?
@@ -71,22 +105,6 @@ jobs:
           bucket="dev-${bucket}"
         fi
         aws s3 sync --delete . s3://${bucket}
-
-    - name: Build and push backend Docker image
-      env:
-        DOCKER_USERNAME: ${{ github.actor }}
-        DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        set -eux
-        echo $DOCKER_PASSWORD | docker login --password-stdin \
-          --username $DOCKER_USERNAME $REGISTRY
-        cd backend/
-        branchName=${GITHUB_REF##*/}
-        /usr/bin/docker buildx build \
-          --tag $IMAGE_TAG_WITH_SHA \
-          --tag $IMAGE_NAME:$branchName \
-          --push \
-          .
 
     - name: Deploy backend
       env:
