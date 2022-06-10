@@ -22,6 +22,7 @@ To get the value
 
 The Service Account should have these perms
 - Cloud Run Admin
+- Cloud Run Service Agent
 
 ## `RUNNING_SERVICE_GCP_SERVICE_ACCOUNT`
 This is just the name/principal/email address of the Service Account that the
