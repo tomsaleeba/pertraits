@@ -76,14 +76,15 @@ jobs:
         DOCKER_USERNAME: ${{ github.actor }}
         DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        cat $DOCKER_PASSWORD | docker login --password-stdin \
+        echo $DOCKER_PASSWORD | docker login --password-stdin \
           --username $DOCKER_USERNAME $REGISTRY
         cd backend/
         branchName=${GITHUB_REF##*/}
         /usr/bin/docker buildx build \
           --tag $IMAGE_TAG_WITH_SHA \
           --tag $IMAGE_NAME:$branchName \
-          --push .
+          --push \
+          .
 
     - name: Deploy backend
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
