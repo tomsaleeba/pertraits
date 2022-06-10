@@ -5,7 +5,7 @@ on: push
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/${{ github.repository }}
-  IMAGE_TAG_WITH_SHA: ghcr.io/${{ github.repository }}:$GITHUB_SHA
+  IMAGE_TAG_WITH_SHA: ghcr.io/${{ github.repository }}:${{ github.sha }}
 
 jobs:
   check-build-deploy:
