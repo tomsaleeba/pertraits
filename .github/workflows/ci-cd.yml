@@ -101,7 +101,7 @@ jobs:
         echo $GH_ACTIONS_GCP_ACCESS_KEY | base64 --decode --ignore-garbage > $keyFile
         set -x
         gcloud auth activate-service-account --key-file $keyFile
-        gcloud config set project $GOOGLE_PROJECT_ID
+        gcloud config set project $GCP_PROJECT_ID
         branchName=${GITHUB_REF##*/}
         serviceName=pertraits-api-$branchName
         commonParams="--platform managed --region $GOOGLE_COMPUTE_ZONE"
