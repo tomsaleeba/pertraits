@@ -2,11 +2,6 @@ name: 'CI/CD'
 
 on: push
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
-  IMAGE_TAG_WITH_SHA: ghcr.io/${{ github.repository }}:${{ github.sha }}
-
 jobs:
   check:
     # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md
@@ -77,40 +72,7 @@ jobs:
         pnpm install --frozen-lockfile
         pnpm build
 
-    - name: Build backend
-      env:
-        DOCKER_USERNAME: ${{ github.actor }}
-        DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        set -eu
-        echo $DOCKER_PASSWORD | docker login --password-stdin \
-          --username $DOCKER_USERNAME $REGISTRY
-        set -x
-        cd backend/
-        branchName=${GITHUB_REF##*/}
-        /usr/bin/docker buildx build \
-          --tag $IMAGE_TAG_WITH_SHA \
-          --tag $IMAGE_NAME:$branchName \
-          --push \
-          .
-
-    - name: Deploy frontend
-      # FIXME what about deploying to GH pages?
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: ${{ secrets.AWS_REGION }}
-        AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-      run: |
-        cd frontend/build/
-        branchName=${GITHUB_REF##*/}
-        bucket=${AWS_S3_BUCKET:?}
-        if [ $branchName = 'develop' ]; then
-          bucket="dev-${bucket}"
-        fi
-        aws s3 sync --delete . s3://${bucket}
-
-    - name: Deploy backend
+    - name: Build and deploy backend
       env:
         GH_ACTIONS_GCP_ACCESS_KEY: ${{ secrets.GH_ACTIONS_GCP_ACCESS_KEY }}
         RUNNING_SERVICE_GCP_SERVICE_ACCOUNT: ${{ secrets.RUNNING_SERVICE_GCP_SERVICE_ACCOUNT }}
@@ -129,7 +91,7 @@ jobs:
         commonParams="--platform managed --region $GOOGLE_COMPUTE_ZONE"
         gcloud beta run deploy \
           $serviceName \
-          --image $IMAGE_TAG_WITH_SHA \
+          --source ./backend/ \
           --execution-environment gen2 \
           $commonParams \
           --allow-unauthenticated \
@@ -141,3 +103,19 @@ jobs:
           $serviceName \
           $commonParams \
           --format="value(status.address.url)"
+
+    - name: Deploy frontend
+      # FIXME what about deploying to GH pages?
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+      run: |
+        cd frontend/build/
+        branchName=${GITHUB_REF##*/}
+        bucket=${AWS_S3_BUCKET:?}
+        if [ $branchName = 'develop' ]; then
+          bucket="dev-${bucket}"
+        fi
+        aws s3 sync --delete . s3://${bucket}
