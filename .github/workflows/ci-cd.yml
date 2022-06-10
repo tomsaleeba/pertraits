@@ -72,6 +72,7 @@ jobs:
 
     - name: Build frontend
       run: |
+        npm install --global pnpm
         cd ./frontend/
         pnpm build
 
