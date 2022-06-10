@@ -74,6 +74,7 @@ jobs:
       run: |
         npm install --global pnpm
         cd ./frontend/
+        pnpm install --frozen-lockfile
         pnpm build
 
     - name: Build backend
@@ -81,9 +82,10 @@ jobs:
         DOCKER_USERNAME: ${{ github.actor }}
         DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        set -eux
+        set -eu
         echo $DOCKER_PASSWORD | docker login --password-stdin \
           --username $DOCKER_USERNAME $REGISTRY
+        set -x
         cd backend/
         branchName=${GITHUB_REF##*/}
         /usr/bin/docker buildx build \
