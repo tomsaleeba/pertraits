@@ -76,6 +76,7 @@ jobs:
         DOCKER_USERNAME: ${{ github.actor }}
         DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        set -eux
         echo $DOCKER_PASSWORD | docker login --password-stdin \
           --username $DOCKER_USERNAME $REGISTRY
         cd backend/
@@ -89,21 +90,32 @@ jobs:
     - name: Deploy backend
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
       env:
-        # FIXME get gcp auth
-        GCP_SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME }}
+        GH_ACTIONS_GCP_ACCESS_KEY: ${{ secrets.GH_ACTIONS_GCP_ACCESS_KEY }}
+        RUNNING_SERVICE_GCP_SERVICE_ACCOUNT: ${{ secrets.RUNNING_SERVICE_GCP_SERVICE_ACCOUNT }}
+        GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         GCS_BUCKET: ${{ secrets.GCS_BUCKET }}
         GOOGLE_COMPUTE_ZONE: 'us-west1'
       run: |
-        commonParams="--platform managed --region ${GOOGLE_COMPUTE_ZONE:?}"
-        gcloud beta run deploy ${GCP_SERVICE_NAME:?} \
-          --image ${IMAGE_TAG_WITH_SHA:?} \
+        set -eu
+        keyFile=$HOME/gcloud-service-key.json
+        echo $GH_ACTIONS_GCP_ACCESS_KEY | base64 --decode --ignore-garbage > $keyFile
+        set -x
+        gcloud auth activate-service-account --key-file $keyFile
+        gcloud config set project $GOOGLE_PROJECT_ID
+        branchName=${GITHUB_REF##*/}
+        serviceName=pertraits-api-$branchName
+        commonParams="--platform managed --region $GOOGLE_COMPUTE_ZONE"
+        gcloud beta run deploy \
+          $serviceName \
+          --image $IMAGE_TAG_WITH_SHA \
           --execution-environment gen2 \
           $commonParams \
           --allow-unauthenticated \
           --max-instances=1 \
+          --service-account=$RUNNING_SERVICE_GCP_SERVICE_ACCOUNT \
           --set-env-vars \
-            GCS_BUCKET=${GCS_BUCKET:?}
+            GCS_BUCKET=$GCS_BUCKET
         gcloud beta run services describe \
-          $GCP_SERVICE_NAME \
+          $serviceName \
           $commonParams \
           --format="value(status.address.url)"
