@@ -6,7 +6,6 @@ RUN tar -C /usr/local/bin -xzf /tmp/litestream.tar.gz && \
   npm -g install pnpm
 
 ENV APP_HOME=/app  DB_PATH=/app/the.db
-ENV GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/gcp-key.json
 RUN mkdir -p $APP_HOME && \
   touch /etc/litestream.yml && \
   chown node:node $APP_HOME /etc/litestream.yml

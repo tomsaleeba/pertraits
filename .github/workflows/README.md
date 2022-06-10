@@ -1,3 +1,7 @@
+# GCP APIs that need to be enabled
+- Cloud Build API
+- Cloud Run API
+
 # Secrets you need in GitHub Actions
 
 ## `GH_ACTIONS_GCP_ACCESS_KEY`
@@ -20,9 +24,13 @@ To get the value
     ```
 - the output of that command is the value for this secret
 
-The Service Account should have these perms
+The Service Account should have these roles
 - Cloud Run Admin
 - Cloud Run Service Agent
+- Cloud Build Editor
+- Artifact Registry Admin
+- Storage Admin
+- Service Account User
 
 ## `RUNNING_SERVICE_GCP_SERVICE_ACCOUNT`
 This is just the name/principal/email address of the Service Account that the
@@ -32,5 +40,5 @@ deployed service should run as, e.g:
 blah-api@blah.iam.gserviceaccount.com
 ```
 
-The Service Account should have these perms
+The Service Account should have these roles
 - Storage Object Creator (for the GCS bucket)
