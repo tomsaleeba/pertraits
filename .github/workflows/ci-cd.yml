@@ -4,17 +4,16 @@ on: push
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository }}
+  IMAGE_TAG_WITH_SHA: ${{ env.IMAGE_NAME }}:${{ env.GITHUB_SHA }}
 
 jobs:
   check-build-deploy:
+    # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md
     runs-on: ubuntu-latest
     steps:
 
     - uses: actions/checkout@v2
-
-    # ubuntu-latest already comes with node installed
-    # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md#package-management
 
     - name: Cache node modules
       id: cache-npm
@@ -54,32 +53,9 @@ jobs:
         cd ./frontend/
         pnpm build
 
-    - name: Log in to the Container registry
-      uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Extract metadata (tags, labels) for Docker
-      id: meta
-      uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-    - name: Build and push backend Docker image
-      id: buildpush
-      uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-      with:
-        context: ./backend/
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-
-    # ubuntu-latest already comes with aws-cli
-    # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md#cli-tools
     - name: Deploy frontend
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+      # FIXME what about deploying to GH pages?
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -94,29 +70,39 @@ jobs:
         fi
         aws s3 sync --delete . s3://${bucket}
 
-    # ubuntu-latest already comes with gcloud
-    # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md#cli-tools
+    - name: Build and push backend Docker image
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+      env:
+        DOCKER_USERNAME: ${{ github.actor }}
+        DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        cat $DOCKER_PASSWORD | docker login --password-stdin \
+          --username $DOCKER_USERNAME $REGISTRY
+        cd backend/
+        branchName=${GITHUB_REF##*/}
+        /usr/bin/docker buildx build \
+          --tag $IMAGE_TAG_WITH_SHA \
+          --tag $IMAGE_NAME:$branchName \
+          --push .
+
     - name: Deploy backend
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
       env:
-        theImage: ${{ steps.buildpush.outputs.imageid }}
-        theTag: ${{ steps.meta.outputs.tags }}
         # FIXME get gcp auth
-        # GCP_SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME }}
+        GCP_SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME }}
+        GCS_BUCKET: ${{ secrets.GCS_BUCKET }}
+        GOOGLE_COMPUTE_ZONE: 'us-west1'
       run: |
-          echo $theImage
-          echo $theTag
-    #     commonParams="--platform managed --region ${GOOGLE_COMPUTE_ZONE:?}"
-    #     gcloud beta run deploy $GCP_SERVICE_NAME \
-    #       --image $theImage \
-    #       --execution-environment gen2 \
-    #       $commonParams \
-    #       --allow-unauthenticated \
-    #       --revision-suffix=${theTag} \
-    #       --max-instances=1
-    #       #--set-env-vars ${ZZ:?}
-    #     gcloud beta run services describe \
-    #       $GCP_SERVICE_NAME \
-    #       $commonParams \
-    #       --format="value(status.address.url)"
-
+        commonParams="--platform managed --region ${GOOGLE_COMPUTE_ZONE:?}"
+        gcloud beta run deploy ${GCP_SERVICE_NAME:?} \
+          --image ${IMAGE_TAG_WITH_SHA:?} \
+          --execution-environment gen2 \
+          $commonParams \
+          --allow-unauthenticated \
+          --max-instances=1 \
+          --set-env-vars \
+            GCS_BUCKET=${GCS_BUCKET:?}
+        gcloud beta run services describe \
+          $GCP_SERVICE_NAME \
+          $commonParams \
+          --format="value(status.address.url)"
