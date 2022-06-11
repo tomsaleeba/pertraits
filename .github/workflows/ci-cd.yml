@@ -96,10 +96,12 @@ jobs:
           $serviceName \
           $commonParams \
           --format="value(status.address.url)")
-        echo "REACT_APP_API_URL=$apiUrl" > ./frontend/.env.local
+        # using .env.local didn't seem to work
+        echo "REACT_APP_API_URL=$apiUrl" >> ./frontend/.env
 
     - name: Build frontend
       run: |
+        set -eux
         npm install --global pnpm
         cd ./frontend/
         pnpm install --frozen-lockfile
