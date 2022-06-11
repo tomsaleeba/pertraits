@@ -1,4 +1,3 @@
-const fsP = require('fs/promises')
 const express = require('express')
 const bodyParser = require('body-parser')
 const sqlite3 = require('sqlite3').verbose()
@@ -65,13 +64,13 @@ app.delete('/item/:id', (req, res) => {
 ;(async () => {
   await new Promise(r => {
     db.serialize(() => {
-      db.get("SELECT count(*) AS c FROM todos", (err, resultRow) => {
+      db.get('SELECT count(*) AS c FROM todos', (err, resultRow) => {
         if (!err) {
           log.info(`DB and table exists, ${resultRow.c} rows, nothing to do`)
           return r()
         }
         log.warn('DB (probably) does not exist, creating it.')
-        db.run("CREATE TABLE todos (title TEXT)")
+        db.run('CREATE TABLE todos (title TEXT)')
         return r()
         // FIXME do we need db.close() on shutdown?
       })

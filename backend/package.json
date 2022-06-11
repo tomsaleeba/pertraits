@@ -2,7 +2,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon --ext js,html .",
-    "lint": "true",
+    "lint": "eslint index.js",
     "test": "true"
   },
   "dependencies": {
@@ -12,6 +12,7 @@
     "sqlite3": "^5.0.8"
   },
   "devDependencies": {
+    "eslint": "^8.17.0",
     "nodemon": "^2.0.16"
   }
 }

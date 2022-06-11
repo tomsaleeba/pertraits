@@ -65,13 +65,6 @@ jobs:
           build-${{ env.cache-name }}-
           build-
 
-    - name: Build frontend
-      run: |
-        npm install --global pnpm
-        cd ./frontend/
-        pnpm install --frozen-lockfile
-        pnpm build
-
     - name: Build and deploy backend
       env:
         GH_ACTIONS_GCP_ACCESS_KEY: ${{ secrets.GH_ACTIONS_GCP_ACCESS_KEY }}
@@ -104,6 +97,14 @@ jobs:
           $commonParams \
           --format="value(status.address.url)")
         echo "REACT_APP_API_URL=$apiUrl" > ./frontend/.env.local
+
+    - name: Build frontend
+      run: |
+        npm install --global pnpm
+        cd ./frontend/
+        pnpm install --frozen-lockfile
+        cat .env.local
+        pnpm build
 
     - name: Deploy frontend
       # what about deploying to GH pages? We'd have to have a subdir for each
