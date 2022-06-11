@@ -41,4 +41,4 @@ blah-api@blah.iam.gserviceaccount.com
 ```
 
 The Service Account should have these roles
-- Storage Object Creator (for the GCS bucket)
+- Storage Object Admin (for the GCS bucket)

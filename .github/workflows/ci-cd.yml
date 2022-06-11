@@ -102,7 +102,8 @@ jobs:
         gcloud beta run services describe \
           $serviceName \
           $commonParams \
-          --format="value(status.address.url)"
+          --format="value(status.address.url)" \
+          | tee ./frontend/.env.local
 
     - name: Deploy frontend
       # FIXME what about deploying to GH pages?
