@@ -105,7 +105,7 @@ jobs:
         npm install --global pnpm
         cd ./frontend/
         pnpm install --frozen-lockfile
-        cat .env.local
+        cat .env
         pnpm build
 
     - name: Deploy frontend
