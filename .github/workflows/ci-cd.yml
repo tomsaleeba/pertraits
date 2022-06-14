@@ -96,8 +96,7 @@ jobs:
           $serviceName \
           $commonParams \
           --format="value(status.address.url)")
-        # using .env.local didn't seem to work
-        echo "REACT_APP_API_URL=$apiUrl" >> ./frontend/.env
+        echo "REACT_APP_API_URL=$apiUrl" >> ./frontend/.env.local
 
     - name: Build frontend
       run: |
@@ -105,22 +104,26 @@ jobs:
         npm install --global pnpm
         cd ./frontend/
         pnpm install --frozen-lockfile
-        cat .env
+        cat .env.local
         pnpm build
 
     - name: Deploy frontend
-      # what about deploying to GH pages? We'd have to have a subdir for each
-      # branch to make it work.
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
         AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+        CF_DISTRO_PROD: ${{ secrets.CF_DISTRO_PROD }}
+        CF_DISTRO_DEV: ${{ secrets.CF_DISTRO_DEV }}
       run: |
+        set -eux
         cd frontend/build/
         branchName=${GITHUB_REF##*/}
-        bucket=${AWS_S3_BUCKET:?}
+        bucket=$AWS_S3_BUCKET
+        cfDistroId=$CF_DISTRO_PROD
         if [ $branchName = 'develop' ]; then
           bucket="dev-${bucket}"
+          cfDistroId=$CF_DISTRO_DEV
         fi
-        aws s3 sync --delete . s3://${bucket}
+        aws s3 sync --delete . s3://$bucket
+        aws cloudfront create-invalidation --distribution-id $cfDistroId --paths '/*'

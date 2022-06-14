@@ -51,7 +51,7 @@ function App() {
       <h2>Add new todo item</h2>
       <form>
         <label>value:
-          <input name="val" type="text" value={newVal} onChange={setNewVal}></input>
+          <input name="val" type="text" value={newVal} onChange={e => setNewVal(e.target.value)}></input>
         </label><br />
         <button onClick={onAddClick} type="submit">Add</button>
       </form>
