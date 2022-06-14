@@ -42,3 +42,39 @@ blah-api@blah.iam.gserviceaccount.com
 
 The Service Account should have these roles
 - Storage Object Admin (for the GCS bucket)
+
+
+# AWS config
+We're using these services:
+- S3: to store the built frontend assets
+- CloudFront: to give us a HTTPS-enabled CDN for the objects in S3
+
+IAM Policy required for the users to do these deploys:
+```json
+{
+  "Version": "2012-10-17",
+    "Statement": [
+    {
+      "Sid": "VisualEditor0",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+      "s3:GetObjectAcl",
+      "s3:GetObject",
+      "s3:ListBucket",
+      "s3:DeleteObject",
+      "cloudfront:CreateInvalidation",
+      "s3:PutObjectAcl"
+      ],
+      "Resource": [
+        "arn:aws:s3:::pertraits.techotom.com/*",
+      "arn:aws:s3:::dev-pertraits.techotom.com/*",
+      "arn:aws:s3:::pertraits.techotom.com",
+      "arn:aws:s3:::dev-pertraits.techotom.com",
+      "arn:aws:cloudfront::883060936904:distribution/E2ZCDJODKD2KF4",
+      "arn:aws:cloudfront::883060936904:distribution/E3NFJXULZ0HLRV"
+      ]
+    }
+  ]
+}
+```
