@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Pertraits",
+  "name": "Pertraits: person traits manager",
   "icons": [
     {
       "src": "favicon.ico",

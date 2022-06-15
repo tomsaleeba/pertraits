@@ -11,7 +11,7 @@ const apiUrl = (() => {
 
 function App() {
   const [rows, setRows] = useState([])
-  const [newVal, setNewVal] = useState(Date.now())
+  const [newVal, setNewVal] = useState(randomName())
 
   useEffect(() => {
     ;(async () => {
@@ -42,27 +42,35 @@ function App() {
       body,
     })
     const data = await resp.json()
-    setRows([data, ...rows])
-    setNewVal(Date.now())
+    setRows([...rows, data])
+    setNewVal(randomName())
   }
 
   return (
     <div className="App">
-      <h2>Add new todo item</h2>
+      <h1>Pertraits</h1>
       <form>
-        <label>value:
-          <input name="val" type="text" value={newVal} onChange={e => setNewVal(e.target.value)}></input>
+        <label>Name:
+          <input name="val" type="text" value={newVal}
+            onChange={e => setNewVal(e.target.value)}></input>
         </label><br />
         <button onClick={onAddClick} type="submit">Add</button>
       </form>
-      <h2>Todo List</h2>
-      <table>
+      <h2>People</h2>
+      <table className="people-list">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
         <tbody>
           {rows.map(r => {
             return (
               <tr key={r.id}>
                 <td>{r.id}</td>
-                <td>{r.title}</td>
+                <td className="middle-col">{r.title}</td>
                 <td>
                   <button onClick={() => onDeleteClick(r.id)}>x</button>
                 </td>
@@ -73,6 +81,12 @@ function App() {
       </table>
     </div>
   )
+}
+
+function randomName() {
+  const names = ['Alice', 'Bob', 'Charlie', 'Dani', 'Eggbert', 'Frank']
+  const randIndex = Math.floor(Math.random() * 6)
+  return names[randIndex]
 }
 
 export default App

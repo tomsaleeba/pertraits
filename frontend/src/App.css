@@ -1,0 +1,19 @@
+.App {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.App h1 {
+  text-align: center;
+}
+
+.people-list {
+  width: 100%;
+}
+
+.middle-col {
+  --border-style: 1px solid black;
+  border-left: var(--border-style);
+  border-right: var(--border-style);
+  padding: 1px 0.5em;
+}
