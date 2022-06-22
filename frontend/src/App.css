@@ -17,3 +17,7 @@
   border-right: var(--border-style);
   padding: 1px 0.5em;
 }
+
+.action-col {
+  text-align: center;
+}

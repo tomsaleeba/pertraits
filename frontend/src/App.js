@@ -64,7 +64,7 @@ function App() {
               <tr key={r.id}>
                 <td>{r.id}</td>
                 <td className="middle-col">{r.title}</td>
-                <td>
+                <td className="action-col">
                   <button onClick={() => onDeleteClick(r.id)}>x</button>
                 </td>
               </tr>
