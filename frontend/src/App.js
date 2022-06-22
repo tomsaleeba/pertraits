@@ -49,13 +49,6 @@ function App() {
   return (
     <div className="App">
       <h1>Pertraits</h1>
-      <form>
-        <label>Name:
-          <input name="val" type="text" value={newVal}
-            onChange={e => setNewVal(e.target.value)}></input>
-        </label><br />
-        <button onClick={onAddClick} type="submit">Add</button>
-      </form>
       <h2>People</h2>
       <table className="people-list">
         <thead>
@@ -79,6 +72,13 @@ function App() {
           })}
         </tbody>
       </table>
+      <form>
+        <label>Name:
+          <input name="val" type="text" value={newVal}
+            onChange={e => setNewVal(e.target.value)}></input>
+        </label><br />
+        <button onClick={onAddClick} type="submit">Add</button>
+      </form>
     </div>
   )
 }
